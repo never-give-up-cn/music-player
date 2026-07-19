@@ -466,6 +466,102 @@
     .playlist { height: 180px; }
   }
 
+  /* ============ Viper / 蝰蛇音效 ============ */
+  .viper-btn {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    font-size: 18px; padding: 6px 10px; border-radius: 6px; transition: 0.15s;
+    display: flex; align-items: center;
+  }
+  .viper-btn:hover { color: #f0b429; background: var(--surface-hover); }
+  .viper-btn.active { color: #f0b429; }
+
+  .viper-panel {
+    width: 620px; max-width: calc(100vw - 48px); max-height: calc(100vh - 48px);
+    background: #0d0d12;
+    border: 1px solid rgba(240,180,41,0.2);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 60px rgba(0,0,0,0.7), 0 0 80px rgba(240,180,41,0.05);
+    display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+    transition: all 0.3s ease;
+  }
+  .viper-panel.hidden {
+    width: 0; min-width: 0; padding: 0; border: none;
+    overflow: hidden; opacity: 0; margin: 0; pointer-events: none;
+  }
+
+  .viper-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #0d0d12 0%, #1a1508 100%);
+    border-bottom: 1px solid rgba(240,180,41,0.15);
+  }
+  .viper-logo { display: flex; align-items: center; gap: 6px; color: #f0b429; font-size: 16px; font-weight: 700; letter-spacing: 1px; }
+  .viper-logo svg { color: #f0b429; }
+  .viper-current { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-dim); }
+  .viper-effect-name { color: #f0b429; font-weight: 600; font-size: 14px; }
+
+  .viper-switch { position: relative; width: 36px; height: 20px; cursor: pointer; display: inline-block; }
+  .viper-switch input { display: none; }
+  .viper-slider { position: absolute; inset: 0; background: rgba(255,255,255,0.12); border-radius: 10px; transition: 0.25s; }
+  .viper-slider::before {
+    content: ''; position: absolute; width: 16px; height: 16px;
+    left: 2px; bottom: 2px; background: #fff; border-radius: 50%; transition: 0.25s;
+  }
+  .viper-switch input:checked + .viper-slider { background: #f0b429; }
+  .viper-switch input:checked + .viper-slider::before { transform: translateX(16px); }
+
+  .viper-recent { background: none; border: 1px solid rgba(240,180,41,0.3); color: #f0b429; font-size: 12px; padding: 4px 12px; border-radius: 14px; cursor: pointer; transition: 0.15s; }
+  .viper-recent:hover { background: rgba(240,180,41,0.1); border-color: #f0b429; }
+
+  .viper-body { display: flex; flex: 1; overflow: hidden; }
+  .viper-nav { width: 90px; flex-shrink: 0; padding: 12px 0; border-right: 1px solid rgba(255,255,255,0.05); }
+  .viper-nav-item {
+    padding: 10px 14px; font-size: 12px; color: var(--text-dim); cursor: pointer;
+    transition: 0.15s; border-right: 2px solid transparent;
+  }
+  .viper-nav-item:hover { color: var(--text); }
+  .viper-nav-item.active { color: #f0b429; border-right-color: #f0b429; background: rgba(240,180,41,0.05); }
+
+  .viper-content { flex: 1; padding: 14px; overflow-y: auto; }
+  .viper-content::-webkit-scrollbar { width: 4px; }
+  .viper-content::-webkit-scrollbar-thumb { background: rgba(240,180,41,0.25); border-radius: 2px; }
+
+  .viper-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .viper-card {
+    position: relative; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
+    padding: 12px 6px; text-align: center; cursor: pointer; transition: all 0.2s;
+    min-height: 76px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+  }
+  .viper-card:hover { background: rgba(240,180,41,0.08); border-color: rgba(240,180,41,0.3); transform: translateY(-1px); }
+  .viper-card.active { border-color: #f0b429; background: rgba(240,180,41,0.12); box-shadow: 0 0 20px rgba(240,180,41,0.1); }
+  .viper-card-icon { font-size: 22px; line-height: 1; }
+  .viper-card-name { font-size: 11px; color: var(--text); font-weight: 500; line-height: 1.2; }
+  .viper-card-badge { position: absolute; top: 4px; right: 4px; font-size: 8px; padding: 1px 5px; border-radius: 6px; background: linear-gradient(135deg, #f0b429, #d4890a); color: #000; font-weight: 700; }
+  .viper-card-tag { position: absolute; top: 4px; right: 4px; font-size: 8px; padding: 1px 5px; border-radius: 6px; background: rgba(240,180,41,0.15); color: #f0b429; border: 1px solid rgba(240,180,41,0.3); }
+
+  .viper-eq { margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(240,180,41,0.08); display: none; }
+  .viper-eq-label { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .viper-eq-slider { width: 100%; height: 4px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.1); border-radius: 2px; outline: none; }
+  .viper-eq-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #f0b429; cursor: pointer; box-shadow: 0 0 10px rgba(240,180,41,0.3); }
+
+  .viper-filter { display: flex; align-items: center; gap: 6px; padding: 10px 18px; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); flex-wrap: wrap; }
+  .viper-filter-label { font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
+  .viper-filter-chip { background: none; border: 1px solid rgba(255,255,255,0.1); color: var(--text-dim); font-size: 11px; padding: 3px 12px; border-radius: 12px; cursor: pointer; transition: 0.15s; }
+  .viper-filter-chip:hover { border-color: #f0b429; color: #f0b429; }
+  .viper-filter-chip.active { background: rgba(240,180,41,0.15); border-color: #f0b429; color: #f0b429; }
+
+  @media (max-width: 820px) {
+    .viper-panel { width: 100%; max-height: 50vh; }
+    .viper-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .viper-grid { grid-template-columns: repeat(2, 1fr); }
+    .viper-nav { width: 70px; }
+    .viper-nav-item { padding: 8px 10px; font-size: 11px; }
+  }
+
   /* ============ SVG icons inline ============ */
   .icon-svg { width: 100%; height: 100%; fill: currentColor; }
 </style>
@@ -539,6 +635,14 @@
           <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
         </svg>
       </button>
+      <button class="viper-btn" id="viperBtn" title="蝰蛇音效" aria-label="蝰蛇音效">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -548,6 +652,146 @@
       <span>播放列表 <span class="count" id="songCount">0 首</span></span>
     </div>
     <div class="playlist-list" id="playlistList"></div>
+  </div>
+
+  <!-- 蝰蛇音效 Panel -->
+  <div class="viper-panel hidden" id="viperPanel">
+    <!-- Header -->
+    <div class="viper-header">
+      <div class="viper-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <span>蝰蛇</span>
+      </div>
+      <div class="viper-current">
+        <span class="viper-effect-name" id="viperEffectName">3D 丽音</span>
+        <label class="viper-switch">
+          <input type="checkbox" id="viperToggle">
+          <span class="viper-slider"></span>
+        </label>
+      </div>
+      <button class="viper-recent" id="viperRecent" title="最近使用">最近</button>
+    </div>
+
+    <!-- Body -->
+    <div class="viper-body">
+      <!-- Left Nav -->
+      <div class="viper-nav">
+        <div class="viper-nav-item active" data-cat="preset">蝰蛇音效</div>
+        <div class="viper-nav-item" data-cat="headphone">耳机音效</div>
+        <div class="viper-nav-item" data-cat="multitrack">多音轨</div>
+        <div class="viper-nav-item" data-cat="plugin">音效插件</div>
+      </div>
+
+      <!-- Content -->
+      <div class="viper-content">
+        <div class="viper-grid" id="viperGrid">
+          <!-- Row 1 -->
+          <div class="viper-card" data-effect="blackDiamond" data-vip="true">
+            <div class="viper-card-badge">超级VIP</div>
+            <div class="viper-card-icon">💎</div>
+            <div class="viper-card-name">黑钻蝰蛇</div>
+          </div>
+          <div class="viper-card active" data-effect="3dSurround">
+            <div class="viper-card-icon">🎵</div>
+            <div class="viper-card-name">3D 丽音</div>
+          </div>
+          <div class="viper-card" data-effect="surround" data-tag="多声道">
+            <div class="viper-card-tag">多声道</div>
+            <div class="viper-card-icon">🔊</div>
+            <div class="viper-card-name">环绕丽音</div>
+          </div>
+          <div class="viper-card" data-effect="hifi" data-vip="true">
+            <div class="viper-card-badge">豪华VIP</div>
+            <div class="viper-card-icon">🎶</div>
+            <div class="viper-card-name">HiFi 现场</div>
+          </div>
+          <div class="viper-card" data-effect="3dRotate" data-vip="true">
+            <div class="viper-card-badge">超级VIP</div>
+            <div class="viper-card-icon">🌀</div>
+            <div class="viper-card-name">3D 环绕</div>
+          </div>
+          <!-- Row 2 -->
+          <div class="viper-card" data-effect="concert">
+            <div class="viper-card-icon">🏟️</div>
+            <div class="viper-card-name">演唱会</div>
+          </div>
+          <div class="viper-card" data-effect="chinese">
+            <div class="viper-card-icon">🏮</div>
+            <div class="viper-card-name">声乐古风</div>
+          </div>
+          <div class="viper-card" data-effect="vocal">
+            <div class="viper-card-icon">🎤</div>
+            <div class="viper-card-name">纯净人声</div>
+          </div>
+          <div class="viper-card" data-effect="surround51">
+            <div class="viper-card-icon">📡</div>
+            <div class="viper-card-name">5.1 全景</div>
+          </div>
+          <div class="viper-card" data-effect="spiral">
+            <div class="viper-card-icon">🔄</div>
+            <div class="viper-card-name">3D 旋转</div>
+          </div>
+          <!-- Row 3 - more effects -->
+          <div class="viper-card" data-effect="bass">
+            <div class="viper-card-icon">🔊</div>
+            <div class="viper-card-name">超重低音</div>
+          </div>
+          <div class="viper-card" data-effect="crystal">
+            <div class="viper-card-icon">💠</div>
+            <div class="viper-card-name">清澈人声</div>
+          </div>
+          <div class="viper-card" data-effect="electronic">
+            <div class="viper-card-icon">⚡</div>
+            <div class="viper-card-name">电子乐</div>
+          </div>
+          <div class="viper-card" data-effect="jazz">
+            <div class="viper-card-icon">🎷</div>
+            <div class="viper-card-name">爵士</div>
+          </div>
+          <div class="viper-card" data-effect="classical">
+            <div class="viper-card-icon">🎻</div>
+            <div class="viper-card-name">古典</div>
+          </div>
+          <!-- Row 4 -->
+          <div class="viper-card" data-effect="rock">
+            <div class="viper-card-icon">🎸</div>
+            <div class="viper-card-name">摇滚</div>
+          </div>
+          <div class="viper-card" data-effect="pop">
+            <div class="viper-card-icon">🌟</div>
+            <div class="viper-card-name">流行</div>
+          </div>
+          <div class="viper-card" data-effect="rnb">
+            <div class="viper-card-icon">🎙️</div>
+            <div class="viper-card-name">R&B</div>
+          </div>
+          <div class="viper-card" data-effect="dance">
+            <div class="viper-card-icon">💃</div>
+            <div class="viper-card-name">舞曲</div>
+          </div>
+          <div class="viper-card" data-effect="folk">
+            <div class="viper-card-icon">🌾</div>
+            <div class="viper-card-name">民谣</div>
+          </div>
+        </div>
+        <!-- EQ slider section (shown for some effects) -->
+        <div class="viper-eq" id="viperEq" style="display:none">
+          <div class="viper-eq-label"> intensity</div>
+          <input type="range" class="viper-eq-slider" id="viperEqSlider" min="0" max="100" value="60">
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-footer filter bar -->
+    <div class="viper-filter">
+      <span class="viper-filter-label">筛选：</span>
+      <button class="viper-filter-chip active">全部</button>
+      <button class="viper-filter-chip">热门</button>
+      <button class="viper-filter-chip">人声</button>
+      <button class="viper-filter-chip">环绕</button>
+      <button class="viper-filter-chip">低音</button>
+      <button class="viper-filter-chip">现场</button>
+    </div>
   </div>
 </div>
 
@@ -1031,7 +1275,309 @@
     resizeCanvas();
   });
 
-  // ============ Init ============
+  // ============ 蝰蛇音效 ============
+  // Web Audio API state
+  let audioCtx = null;
+  let sourceNode = null;
+  let currentNodes = [];
+  let viperEnabled = false;
+  let viperEffect = '3dSurround';
+  let viperIntensity = 60;
+  const viperPanel = document.getElementById('viperPanel');
+  const viperBtn = document.getElementById('viperBtn');
+  const viperToggle = document.getElementById('viperToggle');
+  const viperEffectName = document.getElementById('viperEffectName');
+  const viperGrid = document.getElementById('viperGrid');
+  const viperEqSlider = document.getElementById('viperEqSlider');
+
+  const EFFECT_NAMES = {
+    blackDiamond: '黑钻蝰蛇', '3dSurround': '3D 丽音', surround: '环绕丽音',
+    hifi: 'HiFi 现场', '3dRotate': '3D 环绕', concert: '演唱会',
+    chinese: '声乐古风', vocal: '纯净人声', surround51: '5.1 全景',
+    spiral: '3D 旋转', bass: '超重低音', crystal: '清澈人声',
+    electronic: '电子乐', jazz: '爵士', classical: '古典',
+    rock: '摇滚', pop: '流行', rnb: 'R&B', dance: '舞曲', folk: '民谣'
+  };
+
+  function initAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      setupAudioGraph();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function disconnectNodes() {
+    currentNodes.forEach(n => { try { n.disconnect(); } catch(e) {} });
+    currentNodes = [];
+    if (sourceNode) sourceNode.disconnect();
+  }
+
+  function buildNodes(effect, intensity) {
+    const nodes = [];
+    const i = intensity / 100;
+
+    switch (effect) {
+      case '3dSurround':  // 3D 丽音 - stereo widening + presence
+        nodes.push(audioCtx.createBiquadFilter()); // HPF
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 3 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = -2 * i;
+        nodes.push(audioCtx.createStereoPanner());
+        nodes[nodes.length-1].pan.value = 0;
+        break;
+
+      case 'surround':  // 环绕丽音 - wider stereo + reverb feel with delay
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 4 * i;
+        nodes.push(audioCtx.createDelay(0.5));
+        nodes[nodes.length-1].delayTime.value = 0.015 * i;
+        nodes.push(audioCtx.createGain());
+        nodes[nodes.length-1].gain.value = 0.3;
+        break;
+
+      case 'hifi':  // HiFi 现场 - balanced EQ + slight compression
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 2 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = 2 * i;
+        nodes.push(audioCtx.createDynamicsCompressor());
+        nodes[nodes.length-1].threshold.value = -30; nodes[nodes.length-1].ratio.value = 3;
+        break;
+
+      case '3dRotate':  // 3D环绕 - auto panning
+        nodes.push(audioCtx.createOscillator());
+        nodes[nodes.length-1].frequency.value = 0.3;
+        nodes.push(audioCtx.createGain());
+        nodes[nodes.length-1].gain.value = 0.5 * i;
+        // use oscillator to modulate stereo pan
+        break;
+
+      case 'concert':  // 演唱会 - reverb + spacious
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 1 * i;
+        nodes.push(audioCtx.createDelay(1.0));
+        nodes[nodes.length-1].delayTime.value = 0.04 * i;
+        nodes.push(audioCtx.createGain());
+        nodes[nodes.length-1].gain.value = 0.25;
+        break;
+
+      case 'chinese':  // 声乐古风 - mids boost + highs rolloff
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 1000; nodes[nodes.length-1].Q.value = 1; nodes[nodes.length-1].gain.value = 5 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = -2 * i;
+        break;
+
+      case 'vocal':  // 纯净人声 - boost mid, cut lows/highs
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = -6 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = -3 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 1500; nodes[nodes.length-1].Q.value = 0.7; nodes[nodes.length-1].gain.value = 5 * i;
+        break;
+
+      case 'surround51':  // 5.1全景 - simulated multichannel
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 3 * i;
+        nodes.push(audioCtx.createDelay(0.3));
+        nodes[nodes.length-1].delayTime.value = 0.01 * i;
+        break;
+
+      case 'spiral':  // 3D旋转 - rotating pan
+        nodes.push(audioCtx.createOscillator());
+        nodes[nodes.length-1].frequency.value = 0.2;
+        break;
+
+      case 'bass':  // 超重低音 - heavy lows
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].frequency.value = 100; nodes[nodes.length-1].gain.value = 10 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = -3 * i;
+        break;
+
+      case 'crystal':  // 清澈人声 - clean highs, clear mids
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 5 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = -3 * i;
+        nodes.push(audioCtx.createDynamicsCompressor());
+        break;
+
+      case 'electronic':  // 电子乐
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 4 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].frequency.value = 60; nodes[nodes.length-1].gain.value = 4 * i;
+        break;
+
+      case 'jazz':  // 爵士 - warm mids, slight highs
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 800; nodes[nodes.length-1].Q.value = 0.5; nodes[nodes.length-1].gain.value = 4 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 2 * i;
+        break;
+
+      case 'classical':  // 古典 - wide soundstage
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 3 * i;
+        nodes.push(audioCtx.createDelay(0.5));
+        nodes[nodes.length-1].delayTime.value = 0.03 * i;
+        break;
+
+      case 'rock':  // 摇滚 - punchy
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 250; nodes[nodes.length-1].Q.value = 0.8; nodes[nodes.length-1].gain.value = 5 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 3 * i;
+        break;
+
+      case 'pop':  // 流行 - bright, clear
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 3000; nodes[nodes.length-1].Q.value = 0.5; nodes[nodes.length-1].gain.value = 4 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = 2 * i;
+        break;
+
+      case 'rnb':  // R&B - bass + smooth highs
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].frequency.value = 80; nodes[nodes.length-1].gain.value = 5 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 2 * i;
+        break;
+
+      case 'dance':  // 舞曲 - strong beats
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].frequency.value = 60; nodes[nodes.length-1].gain.value = 6 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 4 * i;
+        nodes.push(audioCtx.createDynamicsCompressor());
+        nodes[nodes.length-1].threshold.value = -20; nodes[nodes.length-1].ratio.value = 4;
+        break;
+
+      case 'folk':  // 民谣 - warm, acoustic
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 1000; nodes[nodes.length-1].Q.value = 0.6; nodes[nodes.length-1].gain.value = 3 * i;
+        nodes.push(audioCtx.createBiquadFilter());
+        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = -1 * i;
+        break;
+
+      default:
+        // flat - no processing
+        break;
+    }
+    return nodes;
+  }
+
+  function setupAudioGraph() {
+    if (!audioCtx) return;
+    disconnectNodes();
+    try {
+      sourceNode = audioCtx.createMediaElementSource(audio);
+    } catch(e) {
+      // May fail if already connected, recreate context
+      audioCtx = new AudioContext();
+      try { sourceNode = audioCtx.createMediaElementSource(audio); } catch(e2) { return; }
+    }
+    if (!viperEnabled || viperEffect === 'none') {
+      sourceNode.connect(audioCtx.destination);
+      return;
+    }
+    const nodes = buildNodes(viperEffect, viperIntensity);
+    currentNodes = nodes;
+    if (nodes.length === 0) {
+      sourceNode.connect(audioCtx.destination);
+      return;
+    }
+    let chain = sourceNode;
+    chain.connect(nodes[0]);
+    let prev = nodes[0];
+    for (let i = 1; i < nodes.length; i++) {
+      if (nodes[i].type === 'oscillator') {
+        // oscillator is a modulator, not in signal chain
+        break;
+      }
+      prev.connect(nodes[i]);
+      prev = nodes[i];
+    }
+    prev.connect(audioCtx.destination);
+  }
+
+  function applyEffect(effectId, intensity) {
+    viperEffect = effectId || '3dSurround';
+    viperIntensity = intensity !== undefined ? intensity : viperIntensity;
+    viperEffectName.textContent = EFFECT_NAMES[viperEffect] || '3D 丽音';
+    // Update grid active state
+    document.querySelectorAll('.viper-card').forEach(el => {
+      el.classList.toggle('active', el.dataset.effect === viperEffect);
+    });
+    // Show/hide EQ
+    const eqDiv = document.getElementById('viperEq');
+    if (['bass','crystal','electronic','dance','rock','pop','rnb'].includes(viperEffect)) {
+      eqDiv.style.display = 'block';
+    } else {
+      eqDiv.style.display = 'none';
+    }
+    if (viperEnabled && audioCtx) {
+      setupAudioGraph();
+    }
+  }
+
+  // Toggle viper panel
+  viperBtn.addEventListener('click', () => {
+    const isOpen = !viperPanel.classList.contains('hidden');
+    viperPanel.classList.toggle('hidden', isOpen);
+    viperBtn.classList.toggle('active', !isOpen);
+  });
+
+  // Toggle viper on/off
+  viperToggle.addEventListener('change', () => {
+    viperEnabled = viperToggle.checked;
+    if (viperEnabled) initAudioCtx();
+    if (audioCtx) setupAudioGraph();
+  });
+
+  // Click effect cards
+  viperGrid.addEventListener('click', e => {
+    const card = e.target.closest('.viper-card');
+    if (!card || card.dataset.vip === 'true') return;
+    const effect = card.dataset.effect;
+    if (effect) {
+      viperEnabled = true;
+      viperToggle.checked = true;
+      if (!audioCtx) initAudioCtx();
+      applyEffect(effect);
+    }
+  });
+
+  // EQ slider
+  viperEqSlider.addEventListener('input', () => {
+    viperIntensity = parseInt(viperEqSlider.value);
+    if (viperEnabled && audioCtx) setupAudioGraph();
+  });
+
+  // Nav filtering
+  document.querySelectorAll('.viper-nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.viper-nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  // Filter chips
+  document.querySelectorAll('.viper-filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.viper-filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+
+  // Recent button
+  document.getElementById('viperRecent').addEventListener('click', () => {
+    // Show a small toast with recent effects (demo)
+    showToast('最近使用: 3D 丽音, 演唱会, 超重低音');
+  });
   function init() {
     setVolume(volume);
     buildPlaylist();

@@ -1279,6 +1279,7 @@
   // Web Audio API state
   let audioCtx = null;
   let sourceNode = null;
+  let bypassGain = null;    // always between sourceNode and dest/effects
   let currentNodes = [];
   let viperEnabled = false;
   let viperEffect = '3dSurround';
@@ -1302,15 +1303,21 @@
   function initAudioCtx() {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      setupAudioGraph();
+      try {
+        sourceNode = audioCtx.createMediaElementSource(audio);
+        // bypassGain: always stays between sourceNode and the rest
+        bypassGain = audioCtx.createGain();
+        sourceNode.connect(bypassGain);
+        bypassGain.connect(audioCtx.destination);
+      } catch(e) { console.log('AudioCtx init failed, may be already initialized'); }
     }
     if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
   function disconnectNodes() {
+    try { bypassGain.disconnect(); } catch(e) {}
     currentNodes.forEach(n => { try { n.disconnect(); } catch(e) {} });
     currentNodes = [];
-    if (sourceNode) sourceNode.disconnect();
   }
 
   function buildNodes(effect, intensity) {
@@ -1471,37 +1478,25 @@
   }
 
   function setupAudioGraph() {
-    if (!audioCtx) return;
+    if (!audioCtx || !sourceNode || !bypassGain) return;
     disconnectNodes();
-    try {
-      sourceNode = audioCtx.createMediaElementSource(audio);
-    } catch(e) {
-      // May fail if already connected, recreate context
-      audioCtx = new AudioContext();
-      try { sourceNode = audioCtx.createMediaElementSource(audio); } catch(e2) { return; }
-    }
     if (!viperEnabled || viperEffect === 'none') {
-      sourceNode.connect(audioCtx.destination);
+      bypassGain.connect(audioCtx.destination);
       return;
     }
     const nodes = buildNodes(viperEffect, viperIntensity);
     currentNodes = nodes;
     if (nodes.length === 0) {
-      sourceNode.connect(audioCtx.destination);
+      bypassGain.connect(audioCtx.destination);
       return;
     }
-    let chain = sourceNode;
-    chain.connect(nodes[0]);
-    let prev = nodes[0];
+    bypassGain.connect(nodes[0]);
     for (let i = 1; i < nodes.length; i++) {
-      if (nodes[i].type === 'oscillator') {
-        // oscillator is a modulator, not in signal chain
-        break;
-      }
-      prev.connect(nodes[i]);
-      prev = nodes[i];
+      if (nodes[i].type === 'oscillator') continue;
+      try { nodes[i-1].connect(nodes[i]); } catch(e) {}
     }
-    prev.connect(audioCtx.destination);
+    const lastNode = nodes.filter(n => n.type !== 'oscillator').pop();
+    if (lastNode) lastNode.connect(audioCtx.destination);
   }
 
   function applyEffect(effectId, intensity) {

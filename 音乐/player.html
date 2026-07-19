@@ -541,8 +541,11 @@
   .viper-card-badge { position: absolute; top: 4px; right: 4px; font-size: 8px; padding: 1px 5px; border-radius: 6px; background: linear-gradient(135deg, #f0b429, #d4890a); color: #000; font-weight: 700; }
   .viper-card-tag { position: absolute; top: 4px; right: 4px; font-size: 8px; padding: 1px 5px; border-radius: 6px; background: rgba(240,180,41,0.15); color: #f0b429; border: 1px solid rgba(240,180,41,0.3); }
 
-  .viper-eq { margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(240,180,41,0.08); display: none; }
-  .viper-eq-label { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .viper-eq { margin-top: 12px; padding: 10px 14px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(240,180,41,0.08); }
+  .viper-eq-vis { display: flex; align-items: flex-end; gap: 3px; height: 40px; padding: 0 2px; }
+  .viper-eq-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 2px; transition: height 0.3s, background 0.3s; }
+  .viper-eq-labels { display: flex; gap: 3px; margin-top: 4px; }
+  .viper-eq-labels span { flex: 1; text-align: center; font-size: 8px; color: var(--text-dim); }
   .viper-eq-slider { width: 100%; height: 4px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.1); border-radius: 2px; outline: none; }
   .viper-eq-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #f0b429; cursor: pointer; box-shadow: 0 0 10px rgba(240,180,41,0.3); }
 
@@ -774,10 +777,17 @@
             <div class="viper-card-name">民谣</div>
           </div>
         </div>
-        <!-- EQ slider section (shown for some effects) -->
+        <!-- EQ visualizer -->
         <div class="viper-eq" id="viperEq" style="display:none">
-          <div class="viper-eq-label"> intensity</div>
-          <input type="range" class="viper-eq-slider" id="viperEqSlider" min="0" max="100" value="60">
+          <div class="viper-eq-vis" id="eqViz"></div>
+          <div class="viper-eq-labels">
+            <span>32</span><span>64</span><span>125</span><span>250</span><span>500</span>
+            <span>1k</span><span>2k</span><span>4k</span><span>8k</span><span>16k</span>
+          </div>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:10px;color:var(--text-dim)">强度</span>
+            <input type="range" class="viper-eq-slider" id="viperEqSlider" min="0" max="100" value="60" style="flex:1">
+          </div>
         </div>
       </div>
     </div>
@@ -1289,7 +1299,7 @@
   const viperToggle = document.getElementById('viperToggle');
   const viperEffectName = document.getElementById('viperEffectName');
   const viperGrid = document.getElementById('viperGrid');
-  const viperEqSlider = document.getElementById('viperEqSlider');
+  const viperEqSlider = document.getElementById('viperEqSlider') || {value: 60};
 
   const EFFECT_NAMES = {
     blackDiamond: '黑钻蝰蛇', '3dSurround': '3D 丽音', surround: '环绕丽音',
@@ -1305,198 +1315,103 @@
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       try {
         sourceNode = audioCtx.createMediaElementSource(audio);
-        // bypassGain: always stays between sourceNode and the rest
         bypassGain = audioCtx.createGain();
+        bypassGain.gain.value = 1;
         sourceNode.connect(bypassGain);
         bypassGain.connect(audioCtx.destination);
-      } catch(e) { console.log('AudioCtx init failed, may be already initialized'); }
+      } catch(e) {}
     }
     if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
   function disconnectNodes() {
     try { bypassGain.disconnect(); } catch(e) {}
-    currentNodes.forEach(n => { try { n.disconnect(); } catch(e) {} });
-    currentNodes = [];
+    if (currentNodes.length) {
+      currentNodes.forEach(n => { try { n.disconnect(); } catch(e) {} });
+      currentNodes = [];
+    }
   }
 
-  function buildNodes(effect, intensity) {
-    const nodes = [];
-    const i = intensity / 100;
+  // 10-band EQ preset system
+  const EQ_BANDS = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
-    switch (effect) {
-      case '3dSurround':  // 3D 丽音 - stereo widening + presence
-        nodes.push(audioCtx.createBiquadFilter()); // HPF
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 3 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = -2 * i;
-        nodes.push(audioCtx.createStereoPanner());
-        nodes[nodes.length-1].pan.value = 0;
-        break;
+  const VIPER_PRESETS = {
+    // effectId: [gains for bands 32Hz..16kHz] (dB, -18 to +18)
+    blackDiamond: [8, 6, 3, 0, 1, 2, 4, 6, 8, 10],  // 黑钻: V-shape + highs
+    '3dSurround': [2, 1, 0, -1, -1, 0, 2, 4, 6, 8],   // 3D丽音: presence boost
+    surround: [0, -1, -2, -2, 0, 2, 3, 5, 7, 9],      // 环绕丽音: wide + airy
+    hifi: [3, 3, 2, 1, 1, 2, 3, 4, 5, 6],            // HiFi现场: balanced lift
+    '3dRotate': [4, 3, 1, -1, -2, 0, 3, 5, 7, 8],    // 3D环绕: spatial
+    concert: [2, 2, 1, 1, 2, 3, 4, 5, 6, 7],         // 演唱会: warm hall
+    chinese: [-2, -1, 1, 3, 4, 3, 2, 1, 0, -1],      // 声乐古风: mid-centric
+    vocal: [-6, -4, -2, 0, 2, 5, 6, 4, 2, 1],        // 纯净人声: mid boost
+    surround51: [0, 0, -1, -1, 0, 2, 4, 6, 8, 10],   // 5.1全景: surround
+    spiral: [3, 2, 0, -1, -1, 0, 2, 4, 6, 8],        // 3D旋转: dynamic
+    bass: [12, 12, 8, 4, 2, 0, -2, -4, -6, -8],      // 超重低音: heavy lows
+    crystal: [-2, 0, 2, 3, 4, 5, 6, 7, 8, 9],        // 清澈人声: bright
+    electronic: [8, 6, 4, 2, 1, 2, 4, 6, 8, 10],     // 电子乐: punchy
+    jazz: [4, 3, 2, 1, 2, 3, 4, 5, 4, 3],            // 爵士: warm
+    classical: [2, 2, 3, 3, 3, 4, 5, 6, 7, 8],       // 古典: full range
+    rock: [6, 5, 4, 3, 2, 3, 4, 5, 6, 6],            // 摇滚: aggressive
+    pop: [4, 4, 3, 2, 2, 3, 4, 5, 6, 7],             // 流行: bright
+    rnb: [8, 7, 5, 3, 2, 3, 4, 5, 6, 6],             // R&B: bass heavy
+    dance: [10, 8, 6, 4, 3, 3, 4, 6, 8, 10],         // 舞曲: energetic
+    folk: [2, 2, 3, 4, 4, 3, 2, 2, 1, 1]             // 民谣: warm acoustic
+  };
 
-      case 'surround':  // 环绕丽音 - wider stereo + reverb feel with delay
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 4 * i;
-        nodes.push(audioCtx.createDelay(0.5));
-        nodes[nodes.length-1].delayTime.value = 0.015 * i;
-        nodes.push(audioCtx.createGain());
-        nodes[nodes.length-1].gain.value = 0.3;
-        break;
+  let eqFilters = [];  // the 10 EQ filter nodes (created once)
 
-      case 'hifi':  // HiFi 现场 - balanced EQ + slight compression
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 2 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = 2 * i;
-        nodes.push(audioCtx.createDynamicsCompressor());
-        nodes[nodes.length-1].threshold.value = -30; nodes[nodes.length-1].ratio.value = 3;
-        break;
-
-      case '3dRotate':  // 3D环绕 - auto panning
-        nodes.push(audioCtx.createOscillator());
-        nodes[nodes.length-1].frequency.value = 0.3;
-        nodes.push(audioCtx.createGain());
-        nodes[nodes.length-1].gain.value = 0.5 * i;
-        // use oscillator to modulate stereo pan
-        break;
-
-      case 'concert':  // 演唱会 - reverb + spacious
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 1 * i;
-        nodes.push(audioCtx.createDelay(1.0));
-        nodes[nodes.length-1].delayTime.value = 0.04 * i;
-        nodes.push(audioCtx.createGain());
-        nodes[nodes.length-1].gain.value = 0.25;
-        break;
-
-      case 'chinese':  // 声乐古风 - mids boost + highs rolloff
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 1000; nodes[nodes.length-1].Q.value = 1; nodes[nodes.length-1].gain.value = 5 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = -2 * i;
-        break;
-
-      case 'vocal':  // 纯净人声 - boost mid, cut lows/highs
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = -6 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = -3 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 1500; nodes[nodes.length-1].Q.value = 0.7; nodes[nodes.length-1].gain.value = 5 * i;
-        break;
-
-      case 'surround51':  // 5.1全景 - simulated multichannel
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 3 * i;
-        nodes.push(audioCtx.createDelay(0.3));
-        nodes[nodes.length-1].delayTime.value = 0.01 * i;
-        break;
-
-      case 'spiral':  // 3D旋转 - rotating pan
-        nodes.push(audioCtx.createOscillator());
-        nodes[nodes.length-1].frequency.value = 0.2;
-        break;
-
-      case 'bass':  // 超重低音 - heavy lows
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].frequency.value = 100; nodes[nodes.length-1].gain.value = 10 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = -3 * i;
-        break;
-
-      case 'crystal':  // 清澈人声 - clean highs, clear mids
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 5 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = -3 * i;
-        nodes.push(audioCtx.createDynamicsCompressor());
-        break;
-
-      case 'electronic':  // 电子乐
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 4 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].frequency.value = 60; nodes[nodes.length-1].gain.value = 4 * i;
-        break;
-
-      case 'jazz':  // 爵士 - warm mids, slight highs
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 800; nodes[nodes.length-1].Q.value = 0.5; nodes[nodes.length-1].gain.value = 4 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 2 * i;
-        break;
-
-      case 'classical':  // 古典 - wide soundstage
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 3 * i;
-        nodes.push(audioCtx.createDelay(0.5));
-        nodes[nodes.length-1].delayTime.value = 0.03 * i;
-        break;
-
-      case 'rock':  // 摇滚 - punchy
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 250; nodes[nodes.length-1].Q.value = 0.8; nodes[nodes.length-1].gain.value = 5 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 3 * i;
-        break;
-
-      case 'pop':  // 流行 - bright, clear
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 3000; nodes[nodes.length-1].Q.value = 0.5; nodes[nodes.length-1].gain.value = 4 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].gain.value = 2 * i;
-        break;
-
-      case 'rnb':  // R&B - bass + smooth highs
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].frequency.value = 80; nodes[nodes.length-1].gain.value = 5 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 2 * i;
-        break;
-
-      case 'dance':  // 舞曲 - strong beats
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'lowshelf'; nodes[nodes.length-1].frequency.value = 60; nodes[nodes.length-1].gain.value = 6 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = 4 * i;
-        nodes.push(audioCtx.createDynamicsCompressor());
-        nodes[nodes.length-1].threshold.value = -20; nodes[nodes.length-1].ratio.value = 4;
-        break;
-
-      case 'folk':  // 民谣 - warm, acoustic
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'peaking'; nodes[nodes.length-1].frequency.value = 1000; nodes[nodes.length-1].Q.value = 0.6; nodes[nodes.length-1].gain.value = 3 * i;
-        nodes.push(audioCtx.createBiquadFilter());
-        nodes[nodes.length-1].type = 'highshelf'; nodes[nodes.length-1].gain.value = -1 * i;
-        break;
-
-      default:
-        // flat - no processing
-        break;
+  function buildEQChain() {
+    // Build 10-band graphic EQ: bypassGain → band1 → band2 → ... → band10 → destination
+    const filters = [];
+    for (let i = 0; i < EQ_BANDS.length; i++) {
+      const f = audioCtx.createBiquadFilter();
+      f.type = 'peaking';
+      f.frequency.value = EQ_BANDS[i];
+      f.Q.value = 0.7 + (i * 0.05);  // wider Q for low freqs, narrower for high
+      f.gain.value = 0;
+      filters.push(f);
     }
-    return nodes;
+    return filters;
   }
 
   function setupAudioGraph() {
     if (!audioCtx || !sourceNode || !bypassGain) return;
     disconnectNodes();
+
     if (!viperEnabled || viperEffect === 'none') {
       bypassGain.connect(audioCtx.destination);
       return;
     }
-    const nodes = buildNodes(viperEffect, viperIntensity);
-    currentNodes = nodes;
-    if (nodes.length === 0) {
-      bypassGain.connect(audioCtx.destination);
-      return;
+
+    // Get preset gains
+    const preset = VIPER_PRESETS[viperEffect] || VIPER_PRESETS['3dSurround'];
+    const intensity = viperIntensity / 100;  // 0.0 - 1.0
+
+    // Create fresh filter chain each time (simple approach)
+    const chain = [];
+    for (let i = 0; i < EQ_BANDS.length; i++) {
+      const f = audioCtx.createBiquadFilter();
+      f.type = 'peaking';
+      f.frequency.value = EQ_BANDS[i];
+      f.Q.value = 0.7 + (i * 0.05);
+      f.gain.value = (preset[i] || 0) * intensity;
+      chain.push(f);
     }
-    bypassGain.connect(nodes[0]);
-    for (let i = 1; i < nodes.length; i++) {
-      if (nodes[i].type === 'oscillator') continue;
-      try { nodes[i-1].connect(nodes[i]); } catch(e) {}
+
+    // Add output gain to prevent clipping
+    const outGain = audioCtx.createGain();
+    outGain.gain.value = 0.85;
+    chain.push(outGain);
+
+    currentNodes = chain;
+
+    // Connect: bypassGain → filter[0] → filter[1] → ... → outGain → destination
+    bypassGain.connect(chain[0]);
+    for (let i = 1; i < chain.length; i++) {
+      chain[i-1].connect(chain[i]);
     }
-    const lastNode = nodes.filter(n => n.type !== 'oscillator').pop();
-    if (lastNode) lastNode.connect(audioCtx.destination);
+    chain[chain.length-1].connect(audioCtx.destination);
   }
 
   function applyEffect(effectId, intensity) {
@@ -1507,12 +1422,24 @@
     document.querySelectorAll('.viper-card').forEach(el => {
       el.classList.toggle('active', el.dataset.effect === viperEffect);
     });
-    // Show/hide EQ
+    // Show/hide EQ visualizer and update bars
     const eqDiv = document.getElementById('viperEq');
-    if (['bass','crystal','electronic','dance','rock','pop','rnb'].includes(viperEffect)) {
-      eqDiv.style.display = 'block';
-    } else {
-      eqDiv.style.display = 'none';
+    eqDiv.style.display = 'block';
+    const viz = document.getElementById('eqViz');
+    viz.innerHTML = '';
+    const preset = VIPER_PRESETS[viperEffect] || VIPER_PRESETS['3dSurround'];
+    const maxGain = 12;
+    for (let i = 0; i < EQ_BANDS.length; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'viper-eq-bar';
+      const gain = (preset[i] || 0) * (viperIntensity / 100);
+      const pct = Math.max(3, Math.abs(gain) / maxGain * 100);
+      bar.style.height = Math.min(40, pct) + 'px';
+      bar.style.background = gain >= 0
+        ? `linear-gradient(to top, #f0b429, #d4890a)`
+        : `linear-gradient(to top, #555, #333)`;
+      bar.style.opacity = Math.max(0.3, Math.abs(gain) / maxGain);
+      viz.appendChild(bar);
     }
     if (viperEnabled && audioCtx) {
       setupAudioGraph();

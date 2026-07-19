@@ -58,3 +58,24 @@
 ## 获取音乐
 
 请通过正规渠道（网易云音乐、QQ音乐、酷狗音乐等）下载 MP3 文件。
+
+### 已下载歌曲
+
+22 首歌曲已通过网易云音乐 API 自动下载（320kbps 高品质 MP3）。
+
+### 仍需手动下载的歌曲
+
+以下 3 首歌曲因版权保护无法自动下载，可通过下歌吧网站的云盘链接手动获取：
+
+| # | 歌曲 | 歌手 | 下载链接 |
+|---|------|------|---------|
+| 9 | 游京 (奋斗进行曲) | DJ筱轩 | [夸克网盘MP3](https://pan.quark.cn/s/b1c6f4f167f2) 或 [夸克网盘FLAC](https://pan.quark.cn/s/fab22b3a0b3d) |
+| 15 | La La Love On My Mind | Ann Winsborn | [夸克网盘MP3](https://pan.quark.cn/s/6ea0a8334199) 或 [夸克网盘FLAC](https://pan.quark.cn/s/53d8b11e3b7c) |
+| 26 | 龙的传人 | 王力宏 | [夸克网盘MP3](https://pan.quark.cn/s/0d39d478b0d8) 或 [夸克网盘WAV](https://pan.quark.cn/s/a23059ed004d) |
+
+将下载的 MP3 文件放入 `音乐\` 文件夹，并按 `songs.js` 中的 `file` 字段命名即可。
+
+### 下载说明
+
+- 运行 `download_netease.py` 可自动从网易云音乐搜索下载
+- 运行 `download_fallback.py` 可尝试从备用渠道下载

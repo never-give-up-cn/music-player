@@ -1,4 +1,5 @@
 const SONGS = [
+  // ======== 第一批 26首 ========
   {
     title: '兄弟难当 (DJ版)',
     artist: '杜歌、何鹏',
@@ -128,5 +129,277 @@ const SONGS = [
     title: '龙的传人',
     artist: '王力宏',
     file: '26-龙的传人.mp3'
+  },
+  // ======== 第二批 27首 ========
+  {
+    title: '落了白 (DJ小金版)',
+    artist: 'bluesky',
+    file: '27-落了白-DJ小金版.mp3'
+  },
+  {
+    title: '只要平凡',
+    artist: '张杰、张碧晨',
+    file: '28-只要平凡.mp3'
+  },
+  {
+    title: 'Brother Louie',
+    artist: 'Modern Talking',
+    file: '29-Brother Louie.mp3'
+  },
+  {
+    title: '天下 (男女合唱版)',
+    artist: '崇阳范冰水、张智宸',
+    file: '30-天下-男女合唱版.mp3'
+  },
+  {
+    title: 'Better Apart',
+    artist: 'Jai Wolf、Dresage',
+    file: '31-Better Apart.mp3'
+  },
+  {
+    title: '美丽的神话 (0.9xDJ加强版)',
+    artist: 'DJ科目三',
+    file: '32-美丽的神话-DJ加强版.mp3'
+  },
+  {
+    title: '新套马杆',
+    artist: '乌兰托娅',
+    file: '33-新套马杆.mp3'
+  },
+  {
+    title: '画你 (恒大歌舞团)',
+    artist: '科尔沁夫',
+    file: '34-画你-恒大歌舞团.mp3'
+  },
+  {
+    title: '都说 (DJ何鹏版)',
+    artist: '龙梅子、老猫、何鹏',
+    file: '35-都说-DJ何鹏版.mp3'
+  },
+  {
+    title: '战马 (DJ默涵版)',
+    artist: '崔伟立、DJ默涵',
+    file: '36-战马-DJ默涵版.mp3'
+  },
+  {
+    title: '百万个吻',
+    artist: '陈明真',
+    file: '37-百万个吻.mp3'
+  },
+  {
+    title: '报喜财神爷',
+    artist: '塘小小',
+    file: '38-报喜财神爷.mp3'
+  },
+  {
+    title: '好心态带来好运气',
+    artist: '青冉',
+    file: '39-好心态带来好运气.mp3'
+  },
+  {
+    title: '天真的橡皮 (DJ版)',
+    artist: '白水寒、DJ Wave',
+    file: '40-天真的橡皮-DJ版.mp3'
+  },
+  {
+    title: '歌在飞',
+    artist: '苏勒亚其其格',
+    file: '41-歌在飞.mp3'
+  },
+  {
+    title: '与天空比个耶',
+    artist: '姜雨涵',
+    file: '42-与天空比个耶.mp3'
+  },
+  {
+    title: '套马杆',
+    artist: '乌兰托娅',
+    file: '43-套马杆.mp3'
+  },
+  {
+    title: '小米进行曲',
+    artist: 'Gumpert!',
+    file: '44-小米进行曲.mp3'
+  },
+  {
+    title: '逃之夭夭 (DJheap九天版)',
+    artist: '张禾禾、DJheap九天',
+    file: '45-逃之夭夭-DJheap九天版.mp3'
+  },
+  {
+    title: '夜夜夜夜叙 (DJ版)',
+    artist: '张鑫雨',
+    file: '46-夜夜夜夜叙-DJ版.mp3'
+  },
+  {
+    title: '过火 (女声版)(DJ怪仔版)',
+    artist: '子非鱼',
+    file: '47-过火-女声版-DJ怪仔版.mp3'
+  },
+  {
+    title: '漫步人生路',
+    artist: '浅影阿',
+    file: '48-漫步人生路.mp3'
+  },
+  {
+    title: 'Sweet but Psycho',
+    artist: 'Ava Max',
+    file: '49-Sweet but Psycho.mp3'
+  },
+  {
+    title: '星月神话',
+    artist: '金莎',
+    file: '50-星月神话.mp3'
+  },
+  {
+    title: 'Boom, Boom, Boom, Boom!!',
+    artist: 'Vengaboys',
+    file: '51-Boom Boom Boom Boom.mp3'
+  },
+  {
+    title: 'Everytime We Touch (DJ京仔版)',
+    artist: 'DJ京仔、Natalie Horler',
+    file: '52-Everytime We Touch-DJ京仔版.mp3'
+  },
+  {
+    title: '外婆的澎湖湾 (DJ阿卓、DJ阿龙版)',
+    artist: '1个球、阿卓',
+    file: '53-外婆的澎湖湾-DJ阿卓阿龙版.mp3'
+  },
+  // ======== 第三批 27首 ========
+  {
+    title: '如愿 (而我将爱你所爱的人间)',
+    artist: '小野来了',
+    file: '54-如愿-而我将爱你所爱的人间.mp3'
+  },
+  {
+    title: "Baby It's Both (Tick-Tack English Ver.)",
+    artist: 'ILLIT、Ava Max',
+    file: "55-Baby It's Both.mp3"
+  },
+  {
+    title: 'Girl In The Mirror',
+    artist: 'Sophia Grace',
+    file: '56-Girl In The Mirror.mp3'
+  },
+  {
+    title: '花开的时候你就来看我',
+    artist: '阿宝、张冬玲',
+    file: '57-花开的时候你就来看我.mp3'
+  },
+  {
+    title: '列车开往春天 (Remix)(DJ沈乐版)',
+    artist: '就是南方凯、DJ沈乐',
+    file: '58-列车开往春天-DJ沈乐版.mp3'
+  },
+  {
+    title: '小米进行曲 (专属BGM)',
+    artist: 'XSWLO',
+    file: '59-小米进行曲-专属BGM.mp3'
+  },
+  {
+    title: '猛男卡点舞',
+    artist: 'M6、神拽',
+    file: '60-猛男卡点舞.mp3'
+  },
+  {
+    title: '自由飞翔',
+    artist: '凤凰传奇',
+    file: '61-自由飞翔.mp3'
+  },
+  {
+    title: '鲸落 (莫小斯DJ版)',
+    artist: '润姝',
+    file: '62-鲸落-莫小斯DJ版.mp3'
+  },
+  {
+    title: '被驯服的象',
+    artist: '蔡健雅',
+    file: '63-被驯服的象.mp3'
+  },
+  {
+    title: '说书人',
+    artist: '暗杠、寅子',
+    file: '64-说书人.mp3'
+  },
+  {
+    title: '人不可貌相 (DJ何鹏版)',
+    artist: '郭玲、何鹏',
+    file: '65-人不可貌相-DJ何鹏版.mp3'
+  },
+  {
+    title: 'Everytime We Touch (DJ MAMUSUONA版)',
+    artist: 'Cascada',
+    file: '66-Everytime We Touch-DJ MAMUSUONA版.mp3'
+  },
+  {
+    title: '皇后大道东',
+    artist: '罗大佑',
+    file: '67-皇后大道东.mp3'
+  },
+  {
+    title: '天使的翅膀 (Live)',
+    artist: '李悟小礼物',
+    file: '68-天使的翅膀-Live.mp3'
+  },
+  {
+    title: '倍儿爽',
+    artist: '大张伟',
+    file: '69-倍儿爽.mp3'
+  },
+  {
+    title: '伤不起',
+    artist: '王麟、老猫',
+    file: '70-伤不起.mp3'
+  },
+  {
+    title: '我的楼兰',
+    artist: '云朵',
+    file: '71-我的楼兰.mp3'
+  },
+  {
+    title: '西海情歌',
+    artist: '降央卓玛',
+    file: '72-西海情歌-降央卓玛.mp3'
+  },
+  {
+    title: '水手',
+    artist: '郑智化',
+    file: '73-水手.mp3'
+  },
+  {
+    title: '美丽的神话',
+    artist: '成龙、金喜善',
+    file: '74-美丽的神话.mp3'
+  },
+  {
+    title: '梦的光点',
+    artist: '王心凌',
+    file: '75-梦的光点.mp3'
+  },
+  {
+    title: '快乐崇拜',
+    artist: '潘玮柏、张韶涵',
+    file: '76-快乐崇拜.mp3'
+  },
+  {
+    title: '踏浪',
+    artist: '徐怀钰',
+    file: '77-踏浪.mp3'
+  },
+  {
+    title: '西海情歌',
+    artist: '刀郎',
+    file: '78-西海情歌-刀郎.mp3'
+  },
+  {
+    title: '快乐崇拜',
+    artist: '潘玮柏、张韶涵',
+    file: '79-快乐崇拜.mp3'
+  },
+  {
+    title: '因为爱情 (独唱版)',
+    artist: '覆予',
+    file: '80-因为爱情-独唱版.mp3'
   }
 ];

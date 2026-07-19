@@ -50,6 +50,7 @@ class MusicPlayer:
         self.current_effect = 'flat'
         self.intensity = 70
         self.processed_file = None
+        self.current_src_path = None  # original filepath (for lyrics lookup)
 
         # Song length tracking (pygame can't always get_length reliably)
         self.song_length = 0  # seconds
@@ -95,11 +96,11 @@ class MusicPlayer:
         """Load .lrc file matching the mp3"""
         self.lyrics_data = []
         self.lyric_idx = -1
+        self.lyric_text.config(state='normal')
         self.lyric_text.delete(1.0, 'end')
 
         lrc_path = os.path.splitext(mp3_path)[0] + '.lrc'
         if not os.path.exists(lrc_path):
-            # Try same filename in a lyrics subfolder
             lrc_path = os.path.join(MUSIC_DIR, 'lyrics', os.path.splitext(os.path.basename(mp3_path))[0] + '.lrc')
 
         if os.path.exists(lrc_path):
@@ -110,6 +111,7 @@ class MusicPlayer:
             self.lyric_text.insert('end', '\n'.join([t for _, t in self.lyrics_data]))
         else:
             self.lyric_text.insert('end', '暂无歌词')
+        self.lyric_text.config(state='disabled')
 
     def parse_lrc(self, path):
         """Parse .lrc file into [(time_sec, text), ...]"""
@@ -202,10 +204,10 @@ class MusicPlayer:
             pygame.mixer.music.load(filepath)
             pygame.mixer.music.play()
             self.song_start_time = time.time()
-            # Get song length
             self.song_length = self.get_song_length(filepath)
-            # Load lyrics
-            self.load_lyrics(filepath)
+            # Load lyrics from original source file, not processed temp file
+            src = self.current_src_path or filepath
+            self.load_lyrics(src)
         except Exception as e:
             print(f"Play error: {e}")
 
@@ -215,6 +217,7 @@ class MusicPlayer:
         if self.current_idx < 0 or self.current_idx >= len(self.playlist):
             return
         title, artist, filepath = self.playlist[self.current_idx]
+        self.current_src_path = filepath  # store original for lyrics
         self.update_song_info()
         self.update_progress_display(0, 0)
 

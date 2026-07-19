@@ -1,0 +1,11 @@
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.aac
+*.wma
+*.m4a
+*.ape
+node_modules/
+.DS_Store
+Thumbs.db

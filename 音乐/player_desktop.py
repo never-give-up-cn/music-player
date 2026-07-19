@@ -51,6 +51,8 @@ class MusicPlayer:
         self.intensity = 70
         self.processed_file = None
         self.current_src_path = None  # original filepath (for lyrics lookup)
+        self.length_cache = {}  # filepath -> duration seconds
+        self.seek_offset = 0.0  # for pygame.get_pos() correction after seek
 
         # Song length tracking (pygame can't always get_length reliably)
         self.song_length = 0  # seconds
@@ -72,6 +74,16 @@ class MusicPlayer:
             self.playlist = self.parse_songs_js(songs_js)
         if not self.playlist:
             self.playlist = self.scan_mp3s()
+        # Pre-cache song lengths in background
+        threading.Thread(target=self._precache_lengths, daemon=True).start()
+
+    def _precache_lengths(self):
+        for _, _, fpath in self.playlist:
+            if fpath not in self.length_cache:
+                try:
+                    dur = self.get_song_length(fpath)
+                    self.length_cache[fpath] = dur
+                except: pass
 
     def parse_songs_js(self, path):
         with open(path, 'r', encoding='utf-8') as f:
@@ -184,14 +196,18 @@ class MusicPlayer:
                 except: pass
 
     def get_song_length(self, filepath):
-        """Get song length in seconds using ffprobe"""
+        """Get song length in seconds (cached after first call)"""
+        if filepath in self.length_cache:
+            return self.length_cache[filepath]
         try:
             result = subprocess.run(
                 ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
                  '-of', 'default=noprint_wrappers=1:nokey=1', filepath],
                 capture_output=True, text=True, timeout=5
             )
-            return float(result.stdout.strip())
+            dur = float(result.stdout.strip())
+            self.length_cache[filepath] = dur
+            return dur
         except:
             return 0
 
@@ -199,13 +215,13 @@ class MusicPlayer:
     def play_file(self, filepath):
         pygame.mixer.music.stop()
         pygame.mixer.music.unload()
-        time.sleep(0.05)
+        self.seek_offset = 0.0
+        time.sleep(0.02)
         try:
             pygame.mixer.music.load(filepath)
             pygame.mixer.music.play()
             self.song_start_time = time.time()
             self.song_length = self.get_song_length(filepath)
-            # Load lyrics from original source file, not processed temp file
             src = self.current_src_path or filepath
             self.load_lyrics(src)
         except Exception as e:
@@ -272,6 +288,7 @@ class MusicPlayer:
         target_sec = self.song_length * (pct / 100.0)
         try:
             pygame.mixer.music.play(start=target_sec)
+            self.seek_offset = target_sec
             self.song_start_time = time.time() - target_sec
         except:
             pass
@@ -304,7 +321,7 @@ class MusicPlayer:
         try:
             pos_ms = pygame.mixer.music.get_pos()
             if pos_ms >= 0:
-                return pos_ms / 1000.0
+                return (pos_ms / 1000.0) + self.seek_offset
         except:
             pass
         return 0

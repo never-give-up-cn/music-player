@@ -1510,8 +1510,7 @@
       playlist.classList.add('hidden');
     }
 
-    // Pre-init AudioContext (stays suspended until user gesture)
-    initAudioCtx();
+    // AudioContext created on first viper interaction (not eager, would break native audio)
 
     // Delay canvas sizing until layout is done
     requestAnimationFrame(() => {

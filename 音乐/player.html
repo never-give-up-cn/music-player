@@ -1319,17 +1319,45 @@
         bypassGain.gain.value = 1;
         sourceNode.connect(bypassGain);
         bypassGain.connect(audioCtx.destination);
-      } catch(e) {}
+      } catch(e) { console.log('Audio init error:', e); }
     }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
-  function disconnectNodes() {
-    try { bypassGain.disconnect(); } catch(e) {}
-    if (currentNodes.length) {
-      currentNodes.forEach(n => { try { n.disconnect(); } catch(e) {} });
-      currentNodes = [];
+  function resumeAudioCtx() {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(e => console.log('Resume error:', e));
     }
+  }
+
+  // 10-band EQ preset system
+
+  function setEQActive(active) {
+    if (!audioCtx || !bypassGain) return;
+    try { bypassGain.disconnect(); } catch(e) {}
+    currentNodes.forEach(n => { try { n.disconnect(); } catch(e) {} });
+    currentNodes = [];
+    if (!active) {
+      bypassGain.connect(audioCtx.destination);
+      return;
+    }
+    const preset = VIPER_PRESETS[viperEffect] || VIPER_PRESETS['3dSurround'];
+    const intensity = viperIntensity / 100;
+    const chain = [];
+    for (let i = 0; i < EQ_BANDS.length; i++) {
+      const f = audioCtx.createBiquadFilter();
+      f.type = 'peaking';
+      f.frequency.value = EQ_BANDS[i];
+      f.Q.value = 0.7 + (i * 0.05);
+      f.gain.value = (preset[i] || 0) * intensity;
+      chain.push(f);
+    }
+    const outGain = audioCtx.createGain();
+    outGain.gain.value = 0.85;
+    chain.push(outGain);
+    currentNodes = chain;
+    bypassGain.connect(chain[0]);
+    for (let i = 1; i < chain.length; i++) chain[i-1].connect(chain[i]);
+    chain[chain.length-1].connect(audioCtx.destination);
   }
 
   // 10-band EQ preset system
@@ -1375,44 +1403,7 @@
     return filters;
   }
 
-  function setupAudioGraph() {
-    if (!audioCtx || !sourceNode || !bypassGain) return;
-    disconnectNodes();
-
-    if (!viperEnabled || viperEffect === 'none') {
-      bypassGain.connect(audioCtx.destination);
-      return;
-    }
-
-    // Get preset gains
-    const preset = VIPER_PRESETS[viperEffect] || VIPER_PRESETS['3dSurround'];
-    const intensity = viperIntensity / 100;  // 0.0 - 1.0
-
-    // Create fresh filter chain each time (simple approach)
-    const chain = [];
-    for (let i = 0; i < EQ_BANDS.length; i++) {
-      const f = audioCtx.createBiquadFilter();
-      f.type = 'peaking';
-      f.frequency.value = EQ_BANDS[i];
-      f.Q.value = 0.7 + (i * 0.05);
-      f.gain.value = (preset[i] || 0) * intensity;
-      chain.push(f);
-    }
-
-    // Add output gain to prevent clipping
-    const outGain = audioCtx.createGain();
-    outGain.gain.value = 0.85;
-    chain.push(outGain);
-
-    currentNodes = chain;
-
-    // Connect: bypassGain → filter[0] → filter[1] → ... → outGain → destination
-    bypassGain.connect(chain[0]);
-    for (let i = 1; i < chain.length; i++) {
-      chain[i-1].connect(chain[i]);
-    }
-    chain[chain.length-1].connect(audioCtx.destination);
-  }
+  // ===== 使用 setEQActive(active) 替代 setupAudioGraph() =====
 
   function applyEffect(effectId, intensity) {
     viperEffect = effectId || '3dSurround';
@@ -1442,22 +1433,24 @@
       viz.appendChild(bar);
     }
     if (viperEnabled && audioCtx) {
-      setupAudioGraph();
+      setEQActive(true);
     }
   }
 
-  // Toggle viper panel
+  // Toggle viper panel + resume audio context
   viperBtn.addEventListener('click', () => {
     const isOpen = !viperPanel.classList.contains('hidden');
     viperPanel.classList.toggle('hidden', isOpen);
     viperBtn.classList.toggle('active', !isOpen);
+    resumeAudioCtx();  // Wake up AudioContext on user gesture
   });
 
   // Toggle viper on/off
   viperToggle.addEventListener('change', () => {
     viperEnabled = viperToggle.checked;
-    if (viperEnabled) initAudioCtx();
-    if (audioCtx) setupAudioGraph();
+    initAudioCtx();
+    resumeAudioCtx();
+    setEQActive(viperEnabled);
   });
 
   // Click effect cards
@@ -1476,7 +1469,7 @@
   // EQ slider
   viperEqSlider.addEventListener('input', () => {
     viperIntensity = parseInt(viperEqSlider.value);
-    if (viperEnabled && audioCtx) setupAudioGraph();
+    if (viperEnabled && audioCtx) setEQActive(true);
   });
 
   // Nav filtering
@@ -1516,6 +1509,9 @@
       playlistVisible = false;
       playlist.classList.add('hidden');
     }
+
+    // Pre-init AudioContext (stays suspended until user gesture)
+    initAudioCtx();
 
     // Delay canvas sizing until layout is done
     requestAnimationFrame(() => {

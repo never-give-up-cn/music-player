@@ -273,9 +273,9 @@ const SONGS = [
     file: '54-如愿-而我将爱你所爱的人间.mp3'
   },
   {
-    title: "Baby It's Both (Tick-Tack English Ver.)",
+    title: 'Baby It\'s Both (Tick-Tack English Ver.)',
     artist: 'ILLIT、Ava Max',
-    file: "55-Baby It's Both.mp3"
+    file: '55-Baby It\'s Both.mp3'
   },
   {
     title: 'Girl In The Mirror',

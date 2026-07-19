@@ -86,34 +86,10 @@
 
 请通过正规渠道（网易云音乐、QQ音乐、酷狗音乐等）下载 MP3 文件。
 
-### 已下载歌曲
+### 下载状态
 
-40 首歌曲已通过网易云音乐 API 自动下载（320kbps 高品质 MP3）。
-
-### 仍需手动下载的歌曲
-
-以下歌曲可通过下歌吧网站的云盘链接手动获取：
-
-| # | 歌曲 | 歌手 | 下载链接 |
-|---|------|------|---------|
-| 9 | 游京 (奋斗进行曲) | DJ筱轩 | [夸克网盘MP3](https://pan.quark.cn/s/b1c6f4f167f2) |
-| 15 | La La Love On My Mind | Ann Winsborn | [夸克网盘MP3](https://pan.quark.cn/s/6ea0a8334199) |
-| 26 | 龙的传人 | 王力宏 | [夸克网盘MP3](https://pan.quark.cn/s/0d39d478b0d8) |
-| 27 | 落了白 (DJ小金版) | bluesky | [夸克网盘MP3](https://pan.quark.cn/s/aa1df1ec41af) |
-| 29 | Brother Louie | Modern Talking | [夸克网盘MP3](https://pan.quark.cn/s/891929b821a7) |
-| 33 | 新套马杆 | 乌兰托娅 | [夸克网盘MP3](https://pan.quark.cn/s/422c043e08e5) |
-| 34 | 画你 (恒大歌舞团) | 科尔沁夫 | [夸克网盘MP3](https://pan.quark.cn/s/375626cfd55a) |
-| 37 | 百万个吻 | 陈明真 | [夸克网盘MP3](https://pan.quark.cn/s/90920893c06e) |
-| 38 | 报喜财神爷 | 塘小小 | [夸克网盘MP3](https://pan.quark.cn/s/02a51ac63600) |
-| 40 | 天真的橡皮 (DJ版) | 白水寒、DJ Wave | [夸克网盘MP3](https://pan.quark.cn/s/ecd267e69fc2) |
-| 41 | 歌在飞 | 苏勒亚其其格 | [夸克网盘MP3](https://pan.quark.cn/s/aad9b32d7a68) |
-| 42 | 与天空比个耶 | 姜雨涵 | [夸克网盘MP3](https://pan.quark.cn/s/51edd36a2ed9) |
-| 46 | 夜夜夜夜叙 (DJ版) | 张鑫雨 | ⬇️ |
-| 48 | 漫步人生路 | 浅影阿 | [夸克网盘MP3](https://pan.quark.cn/s/191f8a3234d7) |
-| 50 | 星月神话 | 金莎 | [夸克网盘MP3](https://pan.quark.cn/s/ce2f386617af) |
-| 51 | Boom, Boom, Boom, Boom!! | Vengaboys | [百度网盘](https://pan.baidu.com/s/1pXPKTNpXCDfl7x1I7hn60Q&pwd=9faa) |
-| 52 | Everytime We Touch (DJ京仔版) | DJ京仔、Natalie Horler | ⬇️ |
-| 53 | 外婆的澎湖湾 (DJ阿卓、DJ阿龙版) | 1个球、阿卓 | [百度网盘](https://pan.baidu.com/s/1elYNx8K6EUT8jaYjAaZyWA&pwd=4q85) |
+**已自动下载：50 首**（320kbps 高品质 MP3）
+**需手动获取：29 首**（网易云版权限制）
 
 将下载的 MP3 放入 `音乐\` 文件夹，按 `songs.js` 中 `file` 字段命名即可。
 

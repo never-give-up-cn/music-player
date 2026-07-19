@@ -1,4 +1,4 @@
-const SONGS = [
+var SONGS = [
   // ======== 第一批 26首 ========
   {
     title: '兄弟难当 (DJ版)',

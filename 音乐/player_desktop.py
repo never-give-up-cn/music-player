@@ -1,18 +1,16 @@
 """
 蝰蛇音乐播放器 - Desktop Edition
-真正的 10 段均衡器音效（基于 ffmpeg）
+真正的 10 段均衡器音效（基于 ffmpeg）+ 进度条 + 歌词
 """
 import tkinter as tk
-from tkinter import ttk, font
+from tkinter import ttk
 import pygame
-import os, json, time, subprocess, threading, re, shutil, glob
-from pathlib import Path
+import os, json, time, subprocess, threading, re, glob, random
 
 MUSIC_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMP_DIR = os.path.join(MUSIC_DIR, '.viper_cache')
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-# ============ EQ Presets (10 bands: 32, 64, 125, 250, 500, 1k, 2k, 4k, 8k, 16k Hz) ============
 EQ_BANDS = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
 
 PRESETS = {
@@ -40,26 +38,34 @@ class MusicPlayer:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("蝰蛇音乐播放器")
-        self.root.geometry("900x650")
+        self.root.geometry("950x680+50+50")
         self.root.configure(bg='#0d0d12')
+        self.root.minsize(800, 600)
 
         pygame.mixer.init(frequency=44100, size=-16, channels=2)
 
-        self.playlist = []       # [(title, artist, filepath), ...]
+        self.playlist = []
         self.current_idx = -1
         self.playing = False
         self.current_effect = 'flat'
         self.intensity = 70
-        self.processed_file = None  # path to current EQ-processed file
-        self.song_end_event = threading.Event()
+        self.processed_file = None
+
+        # Song length tracking (pygame can't always get_length reliably)
+        self.song_length = 0  # seconds
+        self.song_start_time = 0  # time.time() when playback started
+
+        # Lyrics
+        self.lyrics_data = []  # [(timestamp_sec, text), ...]
+        self.lyric_idx = -1
 
         self.load_playlist()
         self.build_ui()
-        self.check_song_end()
+        self.poll_progress()
+        self.poll_song_end()
 
-    # ============ Playlist ============
+    # ==================== Playlist ====================
     def load_playlist(self):
-        """Load songs.js if exists, otherwise scan MP3 files"""
         songs_js = os.path.join(MUSIC_DIR, 'songs.js')
         if os.path.exists(songs_js):
             self.playlist = self.parse_songs_js(songs_js)
@@ -84,40 +90,90 @@ class MusicPlayer:
             result.append((title, '', f))
         return result
 
-    # ============ EQ Processing ============
+    # ==================== Lyrics ====================
+    def load_lyrics(self, mp3_path):
+        """Load .lrc file matching the mp3"""
+        self.lyrics_data = []
+        self.lyric_idx = -1
+        self.lyric_text.delete(1.0, 'end')
+
+        lrc_path = os.path.splitext(mp3_path)[0] + '.lrc'
+        if not os.path.exists(lrc_path):
+            # Try same filename in a lyrics subfolder
+            lrc_path = os.path.join(MUSIC_DIR, 'lyrics', os.path.splitext(os.path.basename(mp3_path))[0] + '.lrc')
+
+        if os.path.exists(lrc_path):
+            self.parse_lrc(lrc_path)
+
+        if self.lyrics_data:
+            self.lyric_text.insert('end', '\n'.join([''] * 3))
+            self.lyric_text.insert('end', '\n'.join([t for _, t in self.lyrics_data]))
+        else:
+            self.lyric_text.insert('end', '暂无歌词')
+
+    def parse_lrc(self, path):
+        """Parse .lrc file into [(time_sec, text), ...]"""
+        with open(path, 'r', encoding='utf-8', errors='replace') as f:
+            lines = f.readlines()
+
+        pattern = re.compile(r'\[(\d+):(\d+(?:\.\d+)?)\](.*)')
+        for line in lines:
+            m = pattern.match(line.strip())
+            if m:
+                minutes = int(m.group(1))
+                seconds = float(m.group(2))
+                text = m.group(3).strip()
+                if text:
+                    self.lyrics_data.append((minutes * 60 + seconds, text))
+
+        self.lyrics_data.sort(key=lambda x: x[0])
+
+    def update_lyrics(self, pos_sec):
+        """Scroll lyrics to match current position"""
+        if not self.lyrics_data:
+            return
+        idx = -1
+        for i, (ts, _) in enumerate(self.lyrics_data):
+            if ts <= pos_sec:
+                idx = i
+            else:
+                break
+        if idx != self.lyric_idx and idx >= 0:
+            self.lyric_idx = idx
+            # Highlight current line by scrolling to it
+            line_start = 4 + idx  # +4 for initial blank lines
+            self.lyric_text.tag_remove('current', 1.0, 'end')
+            self.lyric_text.tag_add('current', f'{line_start}.0', f'{line_start}.end')
+            self.lyric_text.tag_configure('current', foreground='#f0b429', font=('Microsoft YaHei', 12, 'bold'))
+            # Make sure it's visible
+            self.lyric_text.see(f'{line_start}.0')
+
+    # ==================== EQ Processing ====================
     def apply_eq(self, src_path, effect, intensity=70):
-        """Use ffmpeg to apply 10-band EQ, return path to processed file"""
         gains = PRESETS.get(effect, PRESETS['flat'])
         intensity_scale = intensity / 70.0
-
-        # Build ffmpeg equalizer filter chain
         filters = []
         for i, gain in enumerate(gains):
             db = gain * intensity_scale
-            if abs(db) < 0.5: continue  # skip negligible bands
+            if abs(db) < 0.5:
+                continue
             q = 0.7 + (i * 0.05)
             filters.append(f"equalizer=f={EQ_BANDS[i]}:t=q:w={q}:g={db:.1f}")
-
         if not filters:
-            return src_path  # no processing needed
-
+            return src_path
         filter_str = ','.join(filters)
-
         base = os.path.splitext(os.path.basename(src_path))[0]
         safe = re.sub(r'[^\w\-]', '_', f"{base}_{effect}_{int(intensity)}")
         out_path = os.path.join(TEMP_DIR, f"{safe}.mp3")
-
         if os.path.exists(out_path):
-            return out_path  # already cached
-
+            return out_path
         cmd = ['ffmpeg', '-i', src_path, '-af', filter_str,
-               '-b:a', '192k', '-q:a', '2', '-y', out_path,
-               '-loglevel', 'error']
+               '-b:a', '192k', '-q:a', '2', '-y', out_path, '-loglevel', 'error']
         try:
             subprocess.run(cmd, check=True, capture_output=True, timeout=30)
             return out_path
         except:
-            return src_path  # fallback to original
+            return src_path
 
     def clear_cache(self):
         if os.path.exists(TEMP_DIR):
@@ -125,7 +181,19 @@ class MusicPlayer:
                 try: os.remove(f)
                 except: pass
 
-    # ============ Playback ============
+    def get_song_length(self, filepath):
+        """Get song length in seconds using ffprobe"""
+        try:
+            result = subprocess.run(
+                ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                 '-of', 'default=noprint_wrappers=1:nokey=1', filepath],
+                capture_output=True, text=True, timeout=5
+            )
+            return float(result.stdout.strip())
+        except:
+            return 0
+
+    # ==================== Playback ====================
     def play_file(self, filepath):
         pygame.mixer.music.stop()
         pygame.mixer.music.unload()
@@ -133,6 +201,11 @@ class MusicPlayer:
         try:
             pygame.mixer.music.load(filepath)
             pygame.mixer.music.play()
+            self.song_start_time = time.time()
+            # Get song length
+            self.song_length = self.get_song_length(filepath)
+            # Load lyrics
+            self.load_lyrics(filepath)
         except Exception as e:
             print(f"Play error: {e}")
 
@@ -143,9 +216,9 @@ class MusicPlayer:
             return
         title, artist, filepath = self.playlist[self.current_idx]
         self.update_song_info()
+        self.update_progress_display(0, 0)
 
         if self.current_effect != 'flat':
-            # Process with EQ in background thread
             self.status_var.set(f"处理音效: {self.current_effect}...")
             self.root.update()
             threading.Thread(target=self._process_and_play, args=(filepath,), daemon=True).start()
@@ -178,6 +251,7 @@ class MusicPlayer:
         else:
             pygame.mixer.music.unpause()
             self.playing = True
+            self.song_start_time = time.time() - (pygame.mixer.music.get_pos() / 1000)
         self.update_ui()
 
     def next_song(self):
@@ -188,23 +262,32 @@ class MusicPlayer:
         if self.playlist:
             self.play_song((self.current_idx - 1) % len(self.playlist))
 
+    def seek_to(self, pct):
+        """Seek to percentage (0-100) of song"""
+        if self.song_length <= 0 or not self.playing:
+            return
+        target_sec = self.song_length * (pct / 100.0)
+        try:
+            pygame.mixer.music.play(start=target_sec)
+            self.song_start_time = time.time() - target_sec
+        except:
+            pass
+
     def change_effect(self, effect):
         if effect == self.current_effect:
             return
         self.current_effect = effect
         self.update_effect_ui()
-
         if self.playing and self.current_idx >= 0:
-            self.status_var.set(f"切换音效: {effect}...")
             _, _, filepath = self.playlist[self.current_idx]
             if effect == 'flat':
                 self.processed_file = None
-                # Restart with original
-                pos = self.get_pos()
+                pos = self.get_pos_sec()
                 self.play_file(filepath)
-                self.set_pos(pos)
+                self.seek_to_sec(pos)
                 self.status_var.set("")
             else:
+                self.status_var.set(f"切换音效: {effect}...")
                 threading.Thread(target=self._process_and_play, args=(filepath,), daemon=True).start()
 
     def change_intensity(self, val):
@@ -214,201 +297,247 @@ class MusicPlayer:
             self.status_var.set(f"调整强度: {self.intensity}%...")
             threading.Thread(target=self._process_and_play, args=(filepath,), daemon=True).start()
 
-    def get_pos(self):
-        try: return pygame.mixer.music.get_pos()
-        except: return 0
-
-    def set_pos(self, ms):
+    def get_pos_sec(self):
         try:
-            pygame.mixer.music.rewind()
-            time.sleep(0.05)
-            pygame.mixer.music.play(start=ms//1000)
-        except: pass
+            pos_ms = pygame.mixer.music.get_pos()
+            if pos_ms >= 0:
+                return pos_ms / 1000.0
+        except:
+            pass
+        return 0
 
-    def check_song_end(self):
-        """Poll for song end and auto-advance"""
-        if self.playing and not pygame.mixer.music.get_busy() and self.current_idx >= 0:
+    def seek_to_sec(self, sec):
+        try:
+            pygame.mixer.music.play(start=sec)
+            self.song_start_time = time.time() - sec
+        except:
+            pass
+
+    def poll_progress(self):
+        """Update progress bar and time display every 200ms"""
+        if self.playing:
+            pos = self.get_pos_sec()
+            if self.song_length > 0:
+                pct = min(100, (pos / self.song_length) * 100)
+                self.progress_bar['value'] = pct
+                self.update_progress_display(pos, self.song_length)
+                # Update lyrics
+                self.update_lyrics(pos)
+        self.root.after(200, self.poll_progress)
+
+    def poll_song_end(self):
+        """Auto-advance when song ends"""
+        if self.playing and not pygame.mixer.music.get_busy() and self.get_pos_sec() > 0:
             self.next_song()
-        self.root.after(500, self.check_song_end)
+        self.root.after(500, self.poll_song_end)
 
-    # ============ UI ============
+    # ==================== UI ====================
     def build_ui(self):
-        self.root.columnconfigure(1, weight=1)
-        self.root.rowconfigure(0, weight=1)
+        bg, surface, card, gold, text, textdim = '#0d0d12', '#1a1a24', '#222233', '#f0b429', '#eee', '#888'
 
-        # === Colors ===
-        bg = '#0d0d12'
-        surface = '#1a1a24'
-        card = '#222233'
-        gold = '#f0b429'
-        text = '#eee'
-        textdim = '#888'
-        self.colors = {'bg': bg, 'surface': surface, 'card': card, 'gold': gold, 'text': text, 'textdim': textdim}
         self.root.configure(bg=bg)
-
-        style = ttk.Style()
-        style.theme_use('clam')
-        style.configure('TScale', background=bg, troughcolor='#333', slidercolor=gold)
-
-        # === Main Frame ===
         main = tk.Frame(self.root, bg=bg)
-        main.grid(row=0, column=0, sticky='nsew', padx=12, pady=12)
-        main.columnconfigure(1, weight=1)
-        main.rowconfigure(0, weight=1)
+        main.pack(fill='both', expand=True, padx=10, pady=10)
 
-        # === Left Panel - Playlist ===
-        left = tk.Frame(main, bg=surface, width=280)
-        left.grid(row=0, column=0, sticky='nsw', padx=(0,8))
-        left.rowconfigure(1, weight=1)
+        # ====== Left: Playlist ======
+        left = tk.Frame(main, bg=surface, width=260)
+        left.pack(side='left', fill='y', padx=(0,8))
+        left.pack_propagate(False)
 
         tk.Label(left, text="播放列表", bg=surface, fg=text,
-                 font=('Microsoft YaHei', 13, 'bold')).grid(row=0, column=0, pady=(10,5), padx=10, sticky='w')
+                 font=('Microsoft YaHei', 13, 'bold')).pack(pady=(8,3), padx=8, anchor='w')
+        tk.Label(left, text=f"{len(self.playlist)} 首", bg=surface, fg=textdim,
+                 font=('Microsoft YaHei', 9)).pack(pady=(0,5), padx=8, anchor='w')
 
         list_frame = tk.Frame(left, bg=surface)
-        list_frame.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
-
+        list_frame.pack(fill='both', expand=True, padx=5)
         self.listbox = tk.Listbox(list_frame, bg=card, fg=text, selectbackground=gold,
-                                  selectforeground='#000', font=('Microsoft YaHei', 11),
-                                  borderwidth=0, highlightthickness=0, width=30, height=20)
+                                  selectforeground='#000', font=('Microsoft YaHei', 10),
+                                  borderwidth=0, highlightthickness=0, width=28)
         self.listbox.pack(side='left', fill='both', expand=True)
-        self.listbox.bind('<<ListboxSelect>>', lambda e: self._on_playlist_select())
-
+        self.listbox.bind('<<ListboxSelect>>', lambda e: self._on_select())
         scroll = tk.Scrollbar(list_frame, orient='vertical', command=self.listbox.yview)
         scroll.pack(side='right', fill='y')
         self.listbox.config(yscrollcommand=scroll.set)
-
         self.populate_playlist()
 
-        # === Right Panel ===
+        # ====== Right: Main content ======
         right = tk.Frame(main, bg=bg)
-        right.grid(row=0, column=1, sticky='nsew')
-        right.columnconfigure(0, weight=1)
+        right.pack(side='right', fill='both', expand=True)
 
-        # Song Info
-        self.info_frame = tk.Frame(right, bg=bg, height=80)
-        self.info_frame.pack(fill='x', pady=(5,10))
-        self.title_var = tk.StringVar(value="选择歌曲")
+        # --- Song Info & Progress ---
+        info_bar = tk.Frame(right, bg=bg)
+        info_bar.pack(fill='x', pady=(0,5))
+
+        self.title_var = tk.StringVar(value="🎵 选择歌曲")
         self.artist_var = tk.StringVar(value="")
-        tk.Label(self.info_frame, textvariable=self.title_var, bg=bg, fg=text,
-                 font=('Microsoft YaHei', 18, 'bold')).pack(anchor='w')
-        tk.Label(self.info_frame, textvariable=self.artist_var, bg=bg, fg=textdim,
-                 font=('Microsoft YaHei', 12)).pack(anchor='w')
+        tk.Label(info_bar, textvariable=self.title_var, bg=bg, fg=text,
+                 font=('Microsoft YaHei', 16, 'bold')).pack(anchor='w')
+        tk.Label(info_bar, textvariable=self.artist_var, bg=bg, fg=textdim,
+                 font=('Microsoft YaHei', 11)).pack(anchor='w')
+
+        # Progress bar + time
+        prog_frame = tk.Frame(right, bg=bg)
+        prog_frame.pack(fill='x', pady=3)
+
+        self.time_current = tk.StringVar(value="0:00")
+        self.time_total = tk.StringVar(value="0:00")
+        tk.Label(prog_frame, textvariable=self.time_current, bg=bg, fg=textdim,
+                 font=('Consolas', 9)).pack(side='left')
+        self.progress_bar = ttk.Progressbar(prog_frame, orient='horizontal',
+                                             length=400, mode='determinate',
+                                             style='gold.Horizontal.TProgressbar')
+        self.progress_bar.pack(side='left', fill='x', expand=True, padx=5)
+        tk.Label(prog_frame, textvariable=self.time_total, bg=bg, fg=textdim,
+                 font=('Consolas', 9)).pack(side='right')
+
+        # Click-to-seek on progress bar
+        self.progress_bar.bind('<Button-1>', self._on_progress_click)
 
         # Controls
         ctrl = tk.Frame(right, bg=bg)
-        ctrl.pack(fill='x', pady=5)
-
+        ctrl.pack(fill='x', pady=3)
         self.btn_play = tk.Button(ctrl, text="▶ 播放", command=self.toggle_play,
-                                  bg=gold, fg='#000', font=('Microsoft YaHei', 11, 'bold'),
-                                  width=10, borderwidth=0, padx=15, pady=5)
-        self.btn_play.pack(side='left', padx=3)
-
+                                  bg=gold, fg='#000', font=('Microsoft YaHei', 10, 'bold'),
+                                  width=8, borderwidth=0, padx=10, pady=3)
+        self.btn_play.pack(side='left', padx=2)
         tk.Button(ctrl, text="⏮", command=self.prev_song,
-                  bg=surface, fg=text, font=('Arial', 14), width=3, borderwidth=0).pack(side='left', padx=2)
+                  bg=surface, fg=text, font=('Arial', 13), width=2, borderwidth=0).pack(side='left', padx=1)
         tk.Button(ctrl, text="⏭", command=self.next_song,
-                  bg=surface, fg=text, font=('Arial', 14), width=3, borderwidth=0).pack(side='left', padx=2)
-
-        # Status
+                  bg=surface, fg=text, font=('Arial', 13), width=2, borderwidth=0).pack(side='left', padx=1)
         self.status_var = tk.StringVar(value="")
         tk.Label(ctrl, textvariable=self.status_var, bg=bg, fg=gold,
-                 font=('Microsoft YaHei', 10)).pack(side='right', padx=10)
+                 font=('Microsoft YaHei', 9)).pack(side='right', padx=5)
 
-        # === EQ Section ===
-        eq_frame = tk.Frame(right, bg=surface, bd=1, relief='solid', highlightbackground='#333')
-        eq_frame.pack(fill='both', expand=True, pady=(5,0))
+        # --- Split: EQ (left) + Lyrics (right) ---
+        bot = tk.Frame(right, bg=bg)
+        bot.pack(fill='both', expand=True, pady=(5,0))
 
-        # EQ Header
+        # EQ Panel
+        eq_frame = tk.Frame(bot, bg=surface, bd=1, relief='solid', highlightbackground='#333')
+        eq_frame.pack(side='left', fill='both', expand=True, padx=(0,4))
+
         eq_header = tk.Frame(eq_frame, bg=surface)
-        eq_header.pack(fill='x', padx=10, pady=(8,5))
-
+        eq_header.pack(fill='x', padx=8, pady=(5,2))
         tk.Label(eq_header, text="🐍 蝰蛇音效", bg=surface, fg=gold,
-                 font=('Microsoft YaHei', 13, 'bold')).pack(side='left')
+                 font=('Microsoft YaHei', 12, 'bold')).pack(side='left')
 
         self.eq_on = tk.BooleanVar(value=False)
         self.eq_toggle = tk.Checkbutton(eq_header, variable=self.eq_on,
                                          command=self._on_eq_toggle,
-                                         bg=surface, fg=text, selectcolor=surface,
-                                         activebackground=surface,
-                                         font=('Microsoft YaHei', 10))
-        tk.Label(eq_header, text="关闭", bg=surface, fg=textdim,
-                 font=('Microsoft YaHei', 10)).pack(side='right', padx=2)
-        self.eq_toggle.pack(side='right')
+                                         bg=surface, selectcolor=surface,
+                                         activebackground=surface)
         tk.Label(eq_header, text="开启", bg=surface, fg=textdim,
-                 font=('Microsoft YaHei', 10)).pack(side='right')
+                 font=('Microsoft YaHei', 9)).pack(side='right')
+        self.eq_toggle.pack(side='right')
+        tk.Label(eq_header, text="关闭", bg=surface, fg=textdim,
+                 font=('Microsoft YaHei', 9)).pack(side='right', padx=2)
 
         # Intensity
         int_frame = tk.Frame(eq_frame, bg=surface)
-        int_frame.pack(fill='x', padx=10, pady=2)
+        int_frame.pack(fill='x', padx=8, pady=1)
         tk.Label(int_frame, text="强度", bg=surface, fg=textdim,
-                 font=('Microsoft YaHei', 9)).pack(side='left')
+                 font=('Microsoft YaHei', 8)).pack(side='left')
         self.int_slider = tk.Scale(int_frame, from_=10, to=100, orient='horizontal',
                                     bg=surface, fg=text, troughcolor='#333',
-                                    highlightbackground=surface,
+                                    highlightbackground=surface, length=120,
                                     command=lambda v: self.change_intensity(v))
         self.int_slider.set(self.intensity)
-        self.int_slider.pack(side='right', fill='x', expand=True, padx=(5,0))
+        self.int_slider.pack(side='right')
 
-        # EQ Visualizer (placeholder)
-        self.viz_frame = tk.Frame(eq_frame, bg='#111', height=50)
-        self.viz_frame.pack(fill='x', padx=10, pady=3)
+        # Visualizer
+        viz = tk.Frame(eq_frame, bg='#111', height=35)
+        viz.pack(fill='x', padx=8, pady=2)
         self.viz_bars = []
         for _ in range(10):
-            bar = tk.Frame(self.viz_frame, bg='#333', width=20)
-            bar.pack(side='left', expand=True, padx=1, pady=3)
+            bar = tk.Frame(viz, bg='#333', width=15)
+            bar.pack(side='left', expand=True, padx=1, pady=2)
             self.viz_bars.append(bar)
 
         # EQ Grid
-        grid_frame = tk.Frame(eq_frame, bg=surface)
-        grid_frame.pack(fill='both', expand=True, padx=10, pady=(5,10))
-
-        presets = list(PRESETS.keys())
-        # Organize in rows of 4
+        grid = tk.Frame(eq_frame, bg=surface)
+        grid.pack(fill='both', expand=True, padx=8, pady=(2,8))
+        presets = [k for k in PRESETS if k != 'flat']
         for i, name in enumerate(presets):
-            if name == 'flat': continue  # hidden
-            row, col = divmod(i, 4)
-            btn = tk.Button(grid_frame, text=name,
-                            command=lambda n=name: self._on_preset_click(n),
+            r, c = divmod(i, 5)
+            btn = tk.Button(grid, text=name,
+                            command=lambda n=name: self._on_preset(n),
                             bg=card, fg=text, activebackground=gold, activeforeground='#000',
-                            font=('Microsoft YaHei', 10),
-                            borderwidth=0, padx=8, pady=6, width=10)
-            btn.grid(row=row, column=col, padx=3, pady=3, sticky='ew')
-            grid_frame.columnconfigure(col, weight=1)
+                            font=('Microsoft YaHei', 9), borderwidth=0, padx=4, pady=4)
+            btn.grid(row=r, column=c, padx=2, pady=2, sticky='ew')
+            grid.columnconfigure(c, weight=1)
 
-        self.eq_buttons = {}  # will track for highlighting
+        # --- Lyrics Panel ---
+        lyric_frame = tk.Frame(bot, bg=surface, bd=1, relief='solid', highlightbackground='#333', width=300)
+        lyric_frame.pack(side='right', fill='both', expand=True, padx=(4,0))
+        lyric_frame.pack_propagate(False)
 
-        # === Binding ===
+        tk.Label(lyric_frame, text="📃 歌词", bg=surface, fg=textdim,
+                 font=('Microsoft YaHei', 10)).pack(pady=(5,2), padx=8, anchor='w')
+
+        self.lyric_text = tk.Text(lyric_frame, bg='#111', fg=textdim,
+                                   font=('Microsoft YaHei', 11), borderwidth=0,
+                                   highlightthickness=0, wrap='word',
+                                   padx=10, pady=5, spacing1=4, spacing2=2)
+        self.lyric_text.pack(fill='both', expand=True, padx=4, pady=(0,8))
+        self.lyric_text.insert('end', "暂无歌词")
+        self.lyric_text.config(state='disabled')
+
+        # --- Progress bar style ---
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('gold.Horizontal.Tprogressbar', troughcolor='#333',
+                         background=gold, lightcolor=gold, darkcolor=gold, bordercolor=gold)
+
+        # Bind close
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def populate_playlist(self):
         self.listbox.delete(0, 'end')
         for title, artist, _ in self.playlist:
-            display = title[:30] + ('..' if len(title) > 30 else '')
+            display = title[:28] + ('..' if len(title) > 28 else '')
             self.listbox.insert('end', display)
 
     def update_song_info(self):
         if 0 <= self.current_idx < len(self.playlist):
             title, artist, _ = self.playlist[self.current_idx]
-            self.title_var.set(title)
+            self.title_var.set(f"🎵 {title}")
             self.artist_var.set(artist or '')
+
+    def update_progress_display(self, pos_sec, total_sec):
+        def fmt(s):
+            if s <= 0: return "0:00"
+            m = int(s // 60)
+            s2 = int(s % 60)
+            return f"{m}:{s2:02d}"
+        self.time_current.set(fmt(pos_sec))
+        self.time_total.set(fmt(total_sec))
 
     def update_ui(self):
         self.btn_play.config(text="⏸ 暂停" if self.playing else "▶ 播放")
 
     def update_effect_ui(self):
-        """Update EQ visualizer bars"""
         gains = PRESETS.get(self.current_effect, PRESETS['flat'])
         intensity = self.intensity / 70.0
         max_gain = 12
         for i, bar in enumerate(self.viz_bars):
             g = (gains[i] if i < len(gains) else 0) * intensity
             pct = min(100, max(5, abs(g) / max_gain * 100))
-            color = '#f0b429' if g >= 0 else '#666'
-            bar.configure(bg=color, height=int(pct))
+            bar.configure(bg='#f0b429' if g >= 0 else '#555', height=int(pct))
 
-    def _on_playlist_select(self):
+    def _on_select(self):
         sel = self.listbox.curselection()
         if sel:
             self.play_song(sel[0])
+
+    def _on_progress_click(self, event):
+        """Handle click on progress bar to seek"""
+        if self.song_length <= 0:
+            return
+        w = self.progress_bar.winfo_width()
+        if w > 0:
+            pct = (event.x / w) * 100
+            self.seek_to(pct)
 
     def _on_eq_toggle(self):
         if self.eq_on.get():
@@ -423,12 +552,12 @@ class MusicPlayer:
             self.update_effect_ui()
             if self.playing and self.current_idx >= 0:
                 _, _, filepath = self.playlist[self.current_idx]
-                pos = self.get_pos()
+                pos = self.get_pos_sec()
                 self.play_file(filepath)
-                self.set_pos(pos)
+                self.seek_to_sec(pos)
                 self.status_var.set("")
 
-    def _on_preset_click(self, name):
+    def _on_preset(self, name):
         self.eq_on.set(True)
         self.change_effect(name)
 
